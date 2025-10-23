@@ -1,0 +1,103 @@
+#Add MCM without lifting of the neighbor voxels
+import numpy as np
+import pandas
+import nrrd
+import argparse
+from dipy.io.streamline import load_tractogram
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-t','--tractogram_path', type=str,required=True,help="path of input tractogram")
+parser.add_argument('-o','--output_path_tractogram',type=str,required=True,help="output path of obtained augmented tractogram in .csv")
+parser.add_argument('-r','--reference_path',type=str,required=True,help="reference image or .trk")
+parser.add_argument('-c','--mcm_path',type=str,required=True,help="path of the mcm images")
+parser.add_argument('-w','--weights_path',type=str,required=True,help="weights image")
+parser.add_argument('-s','--coordinate_path',type=str,required=True,help="image of coordinate")
+
+args = parser.parse_args()
+tractogram_path=args.tractogram_path
+output_path_tractogram=args.output_path_tractogram
+reference=args.reference_path
+mcm_path=args.input_path
+weights_path=args.weights_path
+coordinate_path=args.coordinate_path
+
+
+import sys
+sys.path.append('../script/')
+from from_pandas_to_numpy import array_to_cov_neighbor
+from from_numpy_to_pandas import numpy_to_pandas_MAT
+
+d=3
+
+#Compute neigbor kernel
+step=np.array([0,1,-1])
+step_i, step_j, step_k = np.meshgrid(step, step, step, indexing='ij')
+kernel_neighbor = np.stack([step_i, step_j, step_k], axis=-1)[None]
+
+
+#Load coordinate of mcm image
+mcm_coordinate,header= nrrd.read(coordinate_path)
+origin_img=header['space origin']
+step_img=np.diag(header['space directions'][1:])
+
+#Load weights of compartements and value of iso compartment
+mcm_w,_=nrrd.read(weights_path)    
+mcm_I,_=nrrd.read(mcm_path+'0.nrrd')
+ksize=mcm_w.shape[0]-1 #shape of the array aka maximum number of compartment
+    
+#Load aniso compartment
+mcm_cov=[]
+for i in range(ksize):
+    mcm_cov+=[nrrd.read(mcm_path+str(i+1)+'.nrrd')[0]]
+
+    
+#Load tract
+tract = load_tractogram(
+            tractogram_path, 
+            reference=reference_path,
+            bbox_valid_check=False,
+            trk_header_check=False)
+origin_tract=tract.space_attributes[0][:3,-1]
+step_tract=np.diag(tract.space_attributes[0])[:3]
+
+nb_streamline=len(tract.streamlines)
+            
+list_m,list_wI,list_I,list_w,list_S=[],[],[],[],[]
+            
+print(nb_streamline,end='->',flush=True)
+for si in range(0,nb_streamline): #nb of streamlines
+#for si in range(1,3):
+    #if si%500==0:
+    print(" ",si,end=' ',flush=True)
+    streamline_coordinate=tract.streamlines[si] #Get coordinate of the streamline
+    nb_pts=streamline_coordinate.shape[0]
+    
+    #Compute closest voxel from tract coordinate then compute its neigbord
+    idx=np.int32(np.round((streamline_coordinate-origin_tract)/step_tract))
+    #if np.all((streamline_coordinate[0]*step_tract-mcm_coordinate[:,idx[0,0],idx[0,1],idx[0,2]]*step_img)>1.25):
+    #    print("mauvais voxel",Flush=True)
+        
+    
+    #Get weights of compartements and value of iso compartment 
+    If=mcm_I[idx[:,0],idx[:,1],idx[:,2]]
+    wIf=mcm_w[0,idx[:,0],idx[:,1],idx[:,2]]
+    wf=mcm_w[1:,idx[:,0],idx[:,1],idx[:,2]].transpose(1,0)
+    
+
+    
+    #Get aniso compartment
+    Sf=np.zeros((nb_pts,ksize,d,d))
+    for i in range(0,ksize):
+        Sf[:,i]=array_to_cov(mcm_cov[i][:,idx[:,0],idx[:,1],idx[:,2]].transpose(1,0))[:,0]
+
+    
+    list_m+=[streamline_coordinate]
+    list_wI+=[wIf]
+    list_I+=[If]
+    list_w+=[wf]
+    list_S+=[Sf]
+                
+MAT=numpy_to_pandas_MAT(list_m,list_wI,list_I,list_w,list_S)            
+MAT.to_csv(output_path_tractogram,index=False)   
+print('',flush=True)
+
