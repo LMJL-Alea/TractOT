@@ -13,8 +13,8 @@ from from_vtk_to_numpy import vtk_to_numpy_tract_array
 parser = argparse.ArgumentParser()
 parser.add_argument('-i','--input_path', type=str,required=True,help="input path")
 parser.add_argument('-o','--output_path',type=str,required=True,help="output path")
-parser.add_argument('-r','--reference_path',type=str,required=True,help="reference image or .trk")
 parser.add_argument('-s','--nb_centroid', type=int,required=True,help="number of centroid")
+parser.add_argument('-r','--reference_path',type=str,required=False,help="reference image or .trk")
 
 args = parser.parse_args()
 input_path=args.input_path
