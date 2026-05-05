@@ -1,33 +1,36 @@
 #Add MCM with an average over neigbhor voxels
 # average in the sense of optimal tranpost metric
 import numpy as np
-import pandas
 import nrrd
 import argparse
-from dipy.io.streamline import load_tractogram
+from dipy.io.streamline import load_tractogram,save_tractogram
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-t','--tractogram_path', type=str,required=True,help="path of input tractogram")
-parser.add_argument('-o','--output_path_tractogram',type=str,required=True,help="output path of obtained augmented tractogram in .csv")
-parser.add_argument('-r','--reference_path',type=str,required=True,help="reference image or .trk")
+parser.add_argument('-o','--output_path_tractogram',type=str,required=True,help="output path of obtained augmented tractogram in .trx")
 parser.add_argument('-c','--mcm_path',type=str,required=True,help="path of the mcm images")
 parser.add_argument('-w','--weights_path',type=str,required=True,help="weights image")
 parser.add_argument('-s','--coordinate_path',type=str,required=True,help="image of coordinate")
+parser.add_argument('-r','--reference_path',type=str,required=False,help="reference image or .trk")
 
 args = parser.parse_args()
 tractogram_path=args.tractogram_path
 output_path_tractogram=args.output_path_tractogram
-reference=args.reference_path
-mcm_path=args.input_path
+mcm_path=args.mcm_path
 weights_path=args.weights_path
 coordinate_path=args.coordinate_path
+
+if args.reference_path:
+    reference_path=args.reference_path
+else:
+    reference='same'
 
 
 import sys
 sys.path.append('../script/')
-from from_pandas_to_numpy import array_to_cov_neighbor
-from from_numpy_to_pandas import numpy_to_pandas_MAT
+from utils import array_to_cov_neighbor, cov_to_array_MAS,most_colinear_compartment
 from projection_GMM import proj_GMM_MAS
+from distances import distance_confidence_along
 
 d=3
 
@@ -64,13 +67,13 @@ step_tract=np.diag(tract.space_attributes[0])[:3]
 
 nb_streamline=len(tract.streamlines)
             
-list_m,list_wI,list_I,list_w,list_S=[],[],[],[],[]
+list_m,list_wI,list_I,list_w,list_S,list_conf,list_col=[],[],[],[],[],[],[]
             
 print(nb_streamline,end='->',flush=True)
-for si in range(0,nb_streamline): #nb of streamlines
-#for si in range(1,3):
-    #if si%500==0:
-    print(" ",si,end=' ',flush=True)
+#for si in range(0,nb_streamline): #nb of streamlines
+for si in range(0,10):
+    if si%10==0:
+        print(" ",si,end=' ',flush=True)
     streamline_coordinate=tract.streamlines[si] #Get coordinate of the streamline
     nb_pts=streamline_coordinate.shape[0]
     
@@ -108,15 +111,38 @@ for si in range(0,nb_streamline): #nb of streamlines
     #Interpolation of aniso
     w=w*w_dist[:,:,:,:,None]
     wf,Sf=proj_GMM_MAS(kmax,ksize,w.reshape(nb_pts,-1),S.reshape(nb_pts,-1,d,d),max_itr=50,eps=1e-7)
-                
+    
+    #Compute distance target source
+    D=distance_confidence_along(w.reshape(nb_pts,-1),wf,S.reshape(nb_pts,-1,d,d),Sf)
+    conf=1/(D+1e-8)
+
+    #Compute most colinear compartment
+    idx_col=most_colinear_compartment(streamline_coordinate,Sf)         
     
     list_m+=[streamline_coordinate]
     list_wI+=[wIf]
     list_I+=[If]
     list_w+=[wf]
-    list_S+=[Sf]
-                
-MAT=numpy_to_pandas_MAT(list_m,list_wI,list_I,list_w,list_S)            
-MAT.to_csv(output_path_tractogram,index=False)   
+    list_S+=[cov_to_array_MAS(Sf)]
+    list_conf+=[conf]
+    list_col+=[idx_col]
+ 
+#Normalize confidence 
+max_confidence=0
+for i in range(len(list_conf)):
+    if max(list_conf[i])>max_confidence:
+        max_confidence=max(list_conf[i])
+for i in range(len(list_conf)):
+    list_conf[i]/=max_confidence 
+ 
+tract.streamlines=list_m
+dico={}
+dico['weight iso']=list_wI
+dico['iso']=list_I
+dico['weights aniso']=list_w
+dico['aniso']=list_S
+dico['confidence']=list_conf
+dico['colinear']=list_col
+tract.data_per_point=dico
+save_tractogram(tract,output_path_tractogram)
 print('',flush=True)
-

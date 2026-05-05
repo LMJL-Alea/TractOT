@@ -1,38 +1,35 @@
 #Add MCM without lifting of the neighbor voxels
 import numpy as np
-import pandas
 import nrrd
 import argparse
-from dipy.io.streamline import load_tractogram
+from dipy.io.streamline import load_tractogram,save_tractogram
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-t','--tractogram_path', type=str,required=True,help="path of input tractogram")
-parser.add_argument('-o','--output_path_tractogram',type=str,required=True,help="output path of obtained augmented tractogram in .csv")
-parser.add_argument('-r','--reference_path',type=str,required=True,help="reference image or .trk")
+parser.add_argument('-o','--output_path_tractogram',type=str,required=True,help="output path of obtained augmented tractogram in .trx")
 parser.add_argument('-c','--mcm_path',type=str,required=True,help="path of the mcm images")
 parser.add_argument('-w','--weights_path',type=str,required=True,help="weights image")
 parser.add_argument('-s','--coordinate_path',type=str,required=True,help="image of coordinate")
+parser.add_argument('-r','--reference_path',type=str,required=False,help="reference image or .trk")
 
 args = parser.parse_args()
 tractogram_path=args.tractogram_path
 output_path_tractogram=args.output_path_tractogram
-reference=args.reference_path
-mcm_path=args.input_path
+mcm_path=args.mcm_path
 weights_path=args.weights_path
 coordinate_path=args.coordinate_path
+
+if args.reference_path:
+    reference_path=args.reference_path
+else:
+    reference='same'
 
 
 import sys
 sys.path.append('../script/')
-from from_pandas_to_numpy import array_to_cov_neighbor
-from from_numpy_to_pandas import numpy_to_pandas_MAT
+from utils import array_to_cov_neighbor,cov_to_array_MAS,most_colinear_compartment
 
 d=3
-
-#Compute neigbor kernel
-step=np.array([0,1,-1])
-step_i, step_j, step_k = np.meshgrid(step, step, step, indexing='ij')
-kernel_neighbor = np.stack([step_i, step_j, step_k], axis=-1)[None]
 
 
 #Load coordinate of mcm image
@@ -62,7 +59,7 @@ step_tract=np.diag(tract.space_attributes[0])[:3]
 
 nb_streamline=len(tract.streamlines)
             
-list_m,list_wI,list_I,list_w,list_S=[],[],[],[],[]
+list_m,list_wI,list_I,list_w,list_S,list_col=[],[],[],[],[],[]
             
 print(nb_streamline,end='->',flush=True)
 for si in range(0,nb_streamline): #nb of streamlines
@@ -90,14 +87,23 @@ for si in range(0,nb_streamline): #nb of streamlines
     for i in range(0,ksize):
         Sf[:,i]=array_to_cov(mcm_cov[i][:,idx[:,0],idx[:,1],idx[:,2]].transpose(1,0))[:,0]
 
+    #Compute most colinear compartment
+    idx_col=most_colinear_compartment(streamline_coordinate,Sf)
     
     list_m+=[streamline_coordinate]
     list_wI+=[wIf]
     list_I+=[If]
     list_w+=[wf]
     list_S+=[Sf]
+    list_col+=[idx_col]
                 
-MAT=numpy_to_pandas_MAT(list_m,list_wI,list_I,list_w,list_S)            
-MAT.to_csv(output_path_tractogram,index=False)   
+tract.streamlines=list_m
+dico={}
+dico['weight iso']=list_wI
+dico['iso']=list_I
+dico['weights aniso']=list_w
+dico['aniso']=list_S
+dico['colinear']=list_col
+tract.data_per_point=dico
+save_tractogram(tract,output_path_tractogram)
 print('',flush=True)
-
