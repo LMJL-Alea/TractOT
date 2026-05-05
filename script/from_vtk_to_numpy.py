@@ -1,6 +1,5 @@
 import numpy as np
-from new_grid import newgrid_streamline,newgrid_MAS
-from utils import compute_ksize
+from new_grid import newgrid_streamline
 
 def vtk_to_numpy_tract_list(tract,nb_streamline=1,streamlineId=None,d=3):
     #Transform a .vtk file of tract into a list of numpy array 
@@ -48,4 +47,6 @@ def vtk_to_numpy_tract_interpolate(tract,nb_streamline=1,nb_pts=50,streamlineId=
     
     return m,nb_pts    
     
+
+
 

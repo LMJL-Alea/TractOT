@@ -67,18 +67,75 @@ def compute_ksize(MAT):
     return int((MAT.shape[1]-8)/7)
     
     
-def build_MAT_from_tract(t,comp):
-    MAT=t.copy(deep=True)
-    d={}
-    d['MostColinearIndex']=np.zeros(MAT.shape[0])
-    d['FreeWaterWeight']=np.zeros(MAT.shape[0])
-    for i in range(1,comp+1):
-        d['Tensor'+str(i)+'Weight']=np.zeros(MAT.shape[0])
-    d['FreeWaterParameter1']=np.zeros(MAT.shape[0])
-    for i in range(1,comp+1):
-        for j in range(1,7):
-            d['Tensor'+str(i)+'Parameter'+str(j)]=np.zeros(MAT.shape[0])
-    return MAT.assign(**d)
+####################################
+# Covariances matrices to 1D array #
+# 1D array to covariances matrices #
+####################################
 
+def cov_to_array_MAS(S,d=3):
+    #Convert covariance matrix into array of 6 elements
+    #At the scale of MAS
+    nb_pts,ksize=S.shape[0],S.shape[1]
+    l=np.zeros((nb_pts,ksize,6))
+    l[:,:,0]=S[:,:,0,0]
+    l[:,:,1:3]=S[:,:,:2,1]
+    l[:,:,3:]=S[:,:,:,-1]
+    return l.reshape((nb_pts,-1))
+
+def cov_to_array_MAT(S,d=3):
+    #Convert covariance matrix into array of 6 elements
+    #At the scale of MAT
+    nb_MAS,nb_pts,ksize=S.shape[0],S.shape[1],S.shape[2]
+    l=np.zeros((nb_MAS,nb_pts,6*ksize))
+    for i in range(nb_MAS):
+        l[i]=cov_to_array_MAS(S[i])
+    return l.reshape((nb_MAS*nb_pts,-1))
     
+def array_to_cov_MAS(l,d=3):
+    #Convert an array of kx6 elements into the corresponding covariances matrices
+    ksize=int((l.shape[1])/6)
+    nb_pts=l.shape[0]
+    
+    lr=l.reshape((nb_pts,ksize,6))
+    S=np.zeros((nb_pts,ksize,d,d)) 
+
+    S[:,:,0,0]=lr[:,:,0]
+    S[:,:,:2,1]=lr[:,:,1:3]
+    S[:,:,:,2]=lr[:,:,3:]
+    S[:,:,1,0]=lr[:,:,1]
+    S[:,:,2,:2]=lr[:,:,3:5]
+    return S
+    
+def array_to_cov_neighbor(l,d=3):
+    #Convert an array of kx6 elements into the corresponding covariances matrices
+    #For multiple neighbors 
+    #l in (nb_pts,3,3,3,6)
+    
+    nb_pts=l.shape[0]
+    d=l.shape[1]
+    S=np.zeros((nb_pts,3,3,3,d,d))
+
+    S[:,:,:,:,0,0]=l[:,:,:,:,0]
+    S[:,:,:,:,:2,1]=l[:,:,:,:,1:3]
+    S[:,:,:,:,:,2]=l[:,:,:,:,3:]
+    S[:,:,:,:,1,0]=l[:,:,:,:,1]
+    S[:,:,:,:,2,:2]=l[:,:,:,:,3:5]
+    return S
+
+def most_colinear_compartment(m,S):
+    #Compute the most colinear compartment of S
+    #m in R(nb_pts,d)
+    #S in R(nb_pts,k,d,d)
+    #return nb_pts x idx
+    
+    dir_m=np.zeros(m.shape)
+    dir_m[1:-1]=m[2:]-m[:-2]
+    dir_m[0]=m[1]-m[0]
+    dir_m[-1]=m[-1]-m[-2]
+    dir_m/=np.linalg.norm(dir_m,axis=1)[:,None]
+
+    val,vec=np.linalg.eigh(S)
+    largest_vec=np.multiply(vec[:,:,:,-1],0,where=(val[:,:,-1]==0)[:,:,None],out=vec[:,:,:,-1]) #avoid eigenvector of null matrix
+    
+    return np.argmin(np.arccos(abs(np.clip(np.sum(dir_m[:,None]*largest_vec,-1),-1.0,1.0))),1)
 

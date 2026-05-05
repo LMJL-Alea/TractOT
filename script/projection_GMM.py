@@ -24,6 +24,8 @@ def proj_GMM_MAS(k2,ksize,w1,S1,max_itr=10,eps=1e-7):
     nb_pts=w1.shape[0]
     d=S1.shape[-1]
 
+
+    #TODO A VERIFIER
     #Flexible nb of compartments
     if np.array(k2).shape == (): #Should find a better test
         k2=np.int32(k2*np.ones(nb_pts))

@@ -93,9 +93,10 @@ def distances_spatial_iso_aniso_along(m1,m2,I1,I2,S1,S2,alpha=.5):
     
 def distance_MAP(m1,m2,wI1,wI2,I1,I2,w1,w2,S1,S2,alpha=.5):
     #m1,m2 in R(d)
+    #wI1,wI2 in R
     #I1,I2 in R
-    #S1 in R(k1,d,d) and S2 in R(k2,d,d)
     #w1 in R(k1) and w2 in R(k2)
+    #S1 in R(k1,d,d) and S2 in R(k2,d,d)
     #return scalar
     
     C=distances_spatial_iso_aniso(m1,m2,I1,I2,S1,S2,alpha)
@@ -105,11 +106,32 @@ def distance_MAP(m1,m2,wI1,wI2,I1,I2,w1,w2,S1,S2,alpha=.5):
     
     return ot.emd2(w1_stack,w2_stack,C)
     
+def distance_MAP_along(m1,m2,wI1,wI2,I1,I2,w1,w2,S1,S2,alpha=.5):
+    #m1,m2 in R(nb_MAS,d)
+    #wI1,wI2 in R(nb_MAS)
+    #I1,I2 in R(nb_MAS)
+    #w1 in R(nb_MAS,k1) and w2 in R(nb_MAS,k2)
+    #S1 in R(nb_MAS,k1,d,d) and S2 in R(nb_MAS,k2,d,d)
+    #return nb_MAS x scalar
+    
+    
+    nb_MAP=m1.shape[0]
+
+    C=distances_spatial_iso_aniso_along(m1,m2,I1,I2,S1,S2,alpha)
+    D=np.zeros(nb_MAP)
+    w1_stack=concat_w_MAS(wI1,w1)
+    w2_stack=concat_w_MAS(wI2,w2)    
+    for i in range(nb_MAP):
+        D[i]=ot.emd2(w1_stack[i],w2_stack[i],C[i])
+    return D
+    
+    
 def distances_MAP(m1,m2,wI1,wI2,I1,I2,w1,w2,S1,S2,alpha=.5):
     #m1,m2 in R(nb_MAP1,d),R(nb_MAP2,d)
+    #wI1,wI2 in R(nb_MAP1),R(nb_MAP2,d)
     #I1,I2 in R(nb_MAP1),R(nb_MAP2,d)
-    #S1 in R(nb_MAP1,k1,d,d) and S2 in R(nb_MAP2,k2,d,d)
     #w1 in R(nb_MAP1,k1) and w2 in R(nb_MAP2,k2)
+    #S1 in R(nb_MAP1,k1,d,d) and S2 in R(nb_MAP2,k2,d,d)
     #return C in (nb_MAP1,nb_MAP2)
     
     nb_MAPs1,nb_MAPs2=m1.shape[0],m2.shape[0]
@@ -121,9 +143,10 @@ def distances_MAP(m1,m2,wI1,wI2,I1,I2,w1,w2,S1,S2,alpha=.5):
     
 def distance_MAS(m1,m2,wI1,wI2,I1,I2,w1,w2,S1,S2,wMAS1=None,wMAS2=None,alpha=.5):
     #m1,m2 in R(nb_MAP1,d),R(nb_MAP2,d)
+    #wI1,wI2 in R(nb_MAP1),R(nb_MAP2,d)
     #I1,I2 in R(nb_MAP1),R(nb_MAP2,d)
-    #S1 in R(nb_MAP1,k1,d,d) and S2 in R(nb_MAP2,k2,d,d)
     #w1 in R(nb_MAP1,k1) and w2 in R(nb_MAP2,k2)
+    #S1 in R(nb_MAP1,k1,d,d) and S2 in R(nb_MAP2,k2,d,d)
     #return scalar
     if wMAS1 is None:
         wMAS1=np.ones(m1.shape[0])/m1.shape[0]
@@ -136,9 +159,10 @@ def distance_MAS(m1,m2,wI1,wI2,I1,I2,w1,w2,S1,S2,wMAS1=None,wMAS2=None,alpha=.5)
     
 def distance_MAS_idx(m1,m2,wI1,wI2,I1,I2,w1,w2,S1,S2,alpha=.5): 
     #m1,m2 in R(nb_MAP,d),R(nb_MAP,d)
-    #I1,I2 in R(nb_MAP),R(nb_MAP,d)
-    #S1 in R(nb_MAP,k1,d,d) and S2 in R(nb_MAP,k2,d,d)
+    #wI1,wI2 in R(nb_MAP),R(nb_MAP)
+    #I1,I2 in R(nb_MAP),R(nb_MAP)
     #w1 in R(nb_MAP,k1) and w2 in R(nb_MAP,k2)
+    #S1 in R(nb_MAP,k1,d,d) and S2 in R(nb_MAP,k2,d,d)
     #return scalar
     C=distances_spatial_iso_aniso_along(m1,m2,I1,I2,S1,S2,alpha)
     nb_MAP=C.shape[0]
@@ -153,12 +177,14 @@ def distance_MAS_idx(m1,m2,wI1,wI2,I1,I2,w1,w2,S1,S2,alpha=.5):
     
 def distances_MAS_idx(m1,m2,wI1,wI2,I1,I2,w1,w2,S1,S2,alpha=0.5):
     #m1,m2 in R(nb_MAS1,nb_MAP,d),R(nb_MAS2,nb_MAP,d)
+    #wI1,wI2 in R(nb_MAS1,nb_MAP),R(nb_MAS2,nb_MAP,d)
     #I1,I2 in R(nb_MAS1,nb_MAP),R(nb_MAS2,nb_MAP,d)
-    #S1 in R(nb_MAS1,nb_MAP,k1,d,d) and S2 in R(nb_MAS2,nb_MAP,k2,d,d)
     #w1 in R(nb_MAS1,nb_MAP,k1) and w2 in R(nb_MAS2,nb_MAP,k2)
-    #return C in R(nb_MAS1,nb_MAS2)
-    nb_MAS1=m1.shape[0]
-    nb_MAS2=m2.shape[0]
+    #S1 in R(nb_MAS1,nb_MAP,k1,d,d) and S2 in R(nb_MAS2,nb_MAP,k2,d,d)
+    #return C in R(nb_MAS1,nb_MAS2)  
+    
+    nb_MAS1,nb_MAS2=m1.shape[0],m2.shape[0]
+
     
     C=np.zeros((nb_MAS1,nb_MAS2))
     for i in range(nb_MAS1):
@@ -169,9 +195,16 @@ def distances_MAS_idx(m1,m2,wI1,wI2,I1,I2,w1,w2,S1,S2,alpha=0.5):
     
     
 def distance_MAT_idx(m1,m2,wI1,wI2,I1,I2,w1,w2,S1,S2,alpha=.5,reflexion=False,lam1=0,lam2=0):
+    #m1,m2 in R(nb_MAS,nb_MAP,d),R(nb_MAS,nb_MAP,d)
+    #wI1,wI2 in R(nb_MAS,nb_MAP),R(nb_MAS,nb_MAP)
+    #I1,I2 in R(nb_MAS,nb_MAP),R(nb_MAS,nb_MAP)
+    #w1 in R(nb_MAS,nb_MAP,k1) and w2 in R(nb_MAS,nb_MAP,k2)
+    #S1 in R(nb_MAS,nb_MAP,k1,d,d) and S2 in R(nb_MAS,nb_MAP,k2,d,d)
+    #return scalar
+    nb_MAS1=m1.shape[0]  
     nb_MAS=m1.shape[0]
     
-    m1_new,m2_new,R,t,sigma=ICP_tracts(m1,m2,reflexion,lam1,lam2,itr=3)
+    m1_new,m2_new,R,t,sigma=ICP_tracts(m1,m2,reflexion,lam1,lam2,max_itr=3)
     
     if reflexion:
         Ox=np.eye(3)
@@ -195,3 +228,60 @@ def distance_MAT_idx(m1,m2,wI1,wI2,I1,I2,w1,w2,S1,S2,alpha=.5,reflexion=False,la
         d+=distance_MAS_idx(m1_new[i],m2_new[i],wI1_new[i],wI2_new[i],I1_new[i],I2_new[i],w1_new[i],w2_new[i],S1_new[i],S2_new[i],alpha=.5)
         d+=lam1*np.sum((np.eye(3)-R)**2)+lam2*np.sum(t**2)
     return d
+    
+def distance_confidence_along(w1,w2,S1,S2):
+    #w1 in R(nb_pts,k1) and w2 in R(nb_pts,k2)
+    #S1 in R(nb_pts,k1,d,d) and S2 in R(nb_pts,k2,d,d)
+    #return nb_pts x scalar
+    
+    C=distances_aniso_along(S1,S2)
+    nb_MAP=C.shape[0]
+    D=np.zeros(nb_MAP)
+    for i in range(nb_MAP):
+        D[i]=ot.emd2(w1[i],w2[i],C[i])
+    return D
+    
+    
+def distances_MAS_svm(m1,m2,wI1,wI2,I1,I2,w1,w2,S1,S2,labels_svm1,labels_svm2,alpha=0.5):
+    #m1,m2 in nb_MAS1xR(nb_MAP1_i,d),nb_MAS2xR(nb_MAP2_i,d)
+    #wI1,wI2 in nb_MAS1xR(nb_MAP1_i),nb_MAS2xR(nb_MAP2_i,d)
+    #I1,I2 in nb_MAS1xR(nb_MAP1_i),nb_MAS2xR(nb_MAP2_i,d)
+    #w1 in nb_MAS1xR(nb_MAP1_i,k1) and w2 in nb_MAS2xR(nb_MAP2_i,k2)
+    #S1 in nb_MAS1xR(nb_MAP1_i,k1,d,d) and S2 in nb_MAS2xR(nb_MAP2_i,k2,d,d)
+    #labels1 in nb_MAS1xR(nb_MAP1_i) and labels1 in nb_MAS2xR(nb_MAP2_i)
+    #return C in R(nb_MAS1,nb_MAS2)  and C_nb_MAP in R(nb_MAS1,nb_MAS2) 
+    
+    L1,L2=len(m1),len(m2)
+    C=np.zeros((L1,L2))
+    C_nb_MAP=np.zeros((L1,L2))
+    
+    for l1 in range(L1):
+        for l2 in range(L2):
+            labels_svm_intersect=np.intersect1d(labels_svm1[l1],labels_svm2[l2])
+            for idx in labels_svm_intersect:
+                C[l1,l2]+=distance_MAP(m1[l1][labels_svm1[l1]==idx][0],m2[l2][labels_svm2[l2]==idx][0],
+                     wI1[l1][labels_svm1[l1]==idx][0],wI2[l2][labels_svm2[l2]==idx][0],
+                     I1[l1][labels_svm1[l1]==idx][0],I2[l2][labels_svm2[l2]==idx][0],
+                     w1[l1][labels_svm1[l1]==idx][0],w2[l2][labels_svm2[l2]==idx][0],
+                     S1[l1][labels_svm1[l1]==idx][0],S2[l2][labels_svm2[l2]==idx][0],
+                     alpha=alpha)
+            C_nb_MAP[l1,l2]=labels_svm_intersect.shape[0]
+    return C/C_nb_MAP,C_nb_MAP
+    
+def distance_cores_svm(m1,m2,wI1,wI2,I1,I2,w1,w2,S1,S2,labels_svm1,labels_svm2,alpha=0.5):
+    #m1,m2 in nb_MASxR(nb_MAP1_i,d),nb_MASxR(nb_MAP2_i,d)
+    #wI1,wI2 in nb_MASxR(nb_MAP1_i),nb_MASxR(nb_MAP2_i,d)
+    #I1,I2 in nb_MASxR(nb_MAP1_i),nb_MASxR(nb_MAP2_i,d)
+    #w1 in nb_MASxR(nb_MAP1_i,k1) and w2 in nb_MASxR(nb_MAP2_i,k2)
+    #S1 in nb_MASxR(nb_MAP1_i,k1,d,d) and S2 in nb_MASxR(nb_MAP2_i,k2,d,d)
+    #labels1 in nb_MASxR(nb_MAP1_i) and labels1 in nb_MASxR(nb_MAP2_i)
+    #return sigma in S(nb_MAS), C in R(nb_MAS,nb_MAS)  and C_nb_MAP in R(nb_MAS,nb_MAS) 
+    
+    C,C_nb_pts=distances_MAS_svm(m1,m2,wI1,wI2,I1,I2,w1,w2,S1,S2,labels_svm1,labels_svm2,alpha=alpha)
+    
+    P=ot.emd([],[],C)
+    cost=np.sum(C*P) #P sum to one
+    sigma=np.nonzero(P)[1]
+    C=C/P.shape[0] #renormalize
+    return cost,sigma,C,C_nb_pts  
+    
