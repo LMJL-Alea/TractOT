@@ -2,8 +2,10 @@
 # Indice are set to bet 0-> bottom of the brain, -1 -> top of the brain
 
 import numpy as np
-from dipy.io.streamline import load_tractogram,save_tractogram
 import argparse
+from dipy.io.streamline import load_tractogram,save_tractogram
+from dipy.io.utils import Space
+
 
 import sys
 sys.path.append('../script/')
@@ -25,14 +27,14 @@ reference_path_streamline=args.reference_path_streamline
 nb_pts=10
 
 ref_tract=load_tractogram(reference_path_streamline,
-                         reference=reference)
+                         reference=reference,to_space=Space.LPSMM)
                          
 ref_streamline=ref_tract.streamlines[0]
 m1 = newgrid_streamline(ref_streamline, nb_pts=nb_pts)
 
 tract = load_tractogram(
             input_path,
-            reference=reference)
+            reference=reference)#,to_space=Space.LPSMM)
 
 streamlines=tract.streamlines
 for i in range(len(streamlines)):
@@ -43,5 +45,4 @@ for i in range(len(streamlines)):
     if d2<d1:
         tract.streamlines[i]=streamlines[i][::-1]
 
-save_tractogram(tract,output_path) 
-print('',flush=True)
+save_tractogram(tract,output_path)#,to_space=Space.LPSMM) 

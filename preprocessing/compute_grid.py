@@ -3,6 +3,7 @@
 import numpy as np
 import argparse
 from dipy.io.streamline import load_tractogram,save_tractogram
+from dipy.io.utils import Space
 
 import sys
 sys.path.append('../script/')
@@ -22,7 +23,7 @@ nb_pts=args.nb_pts
 
 tract = load_tractogram(
             input_path,
-            reference=reference)
+            reference=reference)#,to_space=Space.LPSMM)
 
 nb_streamline=len(tract.streamlines)
 
@@ -32,5 +33,5 @@ for i in range(nb_streamline):
 
 tract.streamlines=m
 
-save_tractogram(tract,output_path) 
+save_tractogram(tract,output_path)#,to_space=Space.LPSMM) 
 

@@ -2,6 +2,7 @@
 import numpy as np
 import argparse
 from dipy.io.streamline import load_tractogram,save_tractogram
+from dipy.io.utils import Space
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-i','--input_path', type=str,required=True,help="input path")
@@ -12,9 +13,9 @@ output_path=args.output_path
 
 tract = load_tractogram(
             input_path,
-            reference='same')
+            reference='same')#,to_space=Space.LPSMM)
 
-save_tractogram(tract,output_path) 
+save_tractogram(tract,output_path,to_space=Space.LPSMM) 
 
 
 
