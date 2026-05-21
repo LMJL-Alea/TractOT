@@ -1,4 +1,0 @@
-Learn svm
-
-CST left: subject 622236, rbf, C=1, gamma=1/500
-CST right: subject 770352, rbf, C=.5, gamma=1/700
