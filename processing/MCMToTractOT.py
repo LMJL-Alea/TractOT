@@ -4,6 +4,7 @@ import numpy as np
 import nrrd
 import argparse
 from dipy.io.streamline import load_tractogram,save_tractogram
+from dipy.io.utils import Space
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-t','--tractogram_path', type=str,required=True,help="path of input tractogram")
@@ -59,7 +60,7 @@ for i in range(ksize):
 #Load tract
 tract = load_tractogram(
             tractogram_path, 
-            reference=reference_path,
+            reference=reference_path,#to_space=Space.LPSMM)
             bbox_valid_check=False,
             trk_header_check=False)
 origin_tract=tract.space_attributes[0][:3,-1]
@@ -70,8 +71,7 @@ nb_streamline=len(tract.streamlines)
 list_m,list_wI,list_I,list_w,list_S,list_conf,list_col=[],[],[],[],[],[],[]
             
 print(nb_streamline,end='->',flush=True)
-#for si in range(0,nb_streamline): #nb of streamlines
-for si in range(0,10):
+for si in range(0,nb_streamline): #nb of streamlines
     if si%10==0:
         print(" ",si,end=' ',flush=True)
     streamline_coordinate=tract.streamlines[si] #Get coordinate of the streamline

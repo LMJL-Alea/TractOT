@@ -1,7 +1,6 @@
 #Add MCM with an average over neigbhor voxels
 # average in the sense of optimal tranpost metric
 import numpy as np
-import pandas
 import nrrd
 import argparse
 from dipy.io.streamline import load_tractogram

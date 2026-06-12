@@ -4,6 +4,7 @@
 import argparse
 import numpy as np
 from dipy.io.streamline import load_tractogram,save_tractogram
+from dipy.io.utils import Space
 from sklearn.cluster import KMeans
 
 parser = argparse.ArgumentParser()
@@ -23,7 +24,7 @@ sys.path.append('../script/')
 from from_trx_to_numpy import trx_to_numpy_tract_array
 from build_cores_MAS import average_MAS_per_labels,infer_labels_svm_endpoint
 
-MAS = load_tractogram(augmented_tractogram_path, reference='same')
+MAS = load_tractogram(augmented_tractogram_path, reference='same',to_space=Space.LPSMM)
 
 nb_pts=40
 nb_streamline=len(MAS.streamlines)

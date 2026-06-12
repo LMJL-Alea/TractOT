@@ -3,6 +3,7 @@ import numpy as np
 import nrrd
 import argparse
 from dipy.io.streamline import load_tractogram,save_tractogram
+from dipy.io.utils import Space
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-t','--tractogram_path', type=str,required=True,help="path of input tractogram")
@@ -51,7 +52,7 @@ for i in range(ksize):
 #Load tract
 tract = load_tractogram(
             tractogram_path, 
-            reference=reference_path,
+            reference=reference_path,#to_space=Space.LPSMM)
             bbox_valid_check=False,
             trk_header_check=False)
 origin_tract=tract.space_attributes[0][:3,-1]
