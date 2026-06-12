@@ -4,24 +4,41 @@ from utils import sqrtms
 
 #In parallel wrt to nb of points
 
-def update_P(k2,w1,S1,S2):
-    ksize=S2.shape[1]
-    nb_MAP,k1=S1.shape[0],S1.shape[1]
-    C=distances_aniso_along(S1,S2)
-    idxs=np.zeros((nb_MAP,k1))
-    for i in range(nb_MAP):
-        idxs[i]=np.argmin(C[i,:,:k2[i]],-1)
-    non_zero=idxs[:,:,None]==np.arange(ksize)
-    return w1[:,:,None]*non_zero
-    
-def update_w(P):
-    return np.sum(P,1)
-
-def update_S(P,w1,S1,S2,eps):
-    ksize=P.shape[-1]
-    return gaussians_barycenter_fixpoint(np.repeat(S1[:,:,None,:,:],ksize,axis=2), P, max_itr=50, eps=eps,Sigma_init=S2)
-
 def proj_GMM_MAS(k2,ksize,w1,S1,max_itr=10,eps=1e-7):
+    """
+    Reduce the number of compartment of a Gaussian Mixture
+
+    This function reduce the number of compartment of an array of Gaussian mixture
+
+    Parameters
+    ----------
+    k2 : numpy array or scalar
+        An array of positive integer defining the number of non null compartment of the target mixtures
+    ksize : scalar
+        A positive scalar for the out put size of the Gaussian mixture (some weights and covariates can be null)
+    w1 : numpy array
+        An array of positive weights for the input Gaussian mixture. 
+        Is shape is nb_MAPxnb_compartment_input
+    S1: numpy array
+        An array of covariate matrices for the input Gaussian mixture. 
+        Is shape is nb_MAPxnb_compartment_inputxdxd
+    max_itr: positive integer
+        Maximum number of iteration before the algorithm stop
+        Default is 10
+    eps: positive scalar
+        minimum difference between two iterates to make the algorithm stop
+        Default is 1e-7
+        
+    Returns
+    -------
+    w2 : numpy array
+        An array of positive weights for the output Gaussian mixture. Is shape is nb_MAPxksize
+        Note that w2 has k2 non null value
+    S2: numpy array
+        An array of covariate matrices for the output Gaussian mixture. Is shape is nb_MAPxk_sizexdxd
+        Note that S2 has k2 non null covariate matrices
+    """
+    
     #k2 output nb of compartment, is a scalar>0 or a vector in R_+^nb_MAP 
     #ksize size of the output array, is a scalar
     #w1 input vector of weight, of dim nb_MAPxnb_compartmentx
@@ -57,6 +74,23 @@ def proj_GMM_MAS(k2,ksize,w1,S1,max_itr=10,eps=1e-7):
     w2=update_w(P)
     return w2,S2
     
+def update_P(k2,w1,S1,S2):
+    ksize=S2.shape[1]
+    nb_MAP,k1=S1.shape[0],S1.shape[1]
+    C=distances_aniso_along(S1,S2)
+    idxs=np.zeros((nb_MAP,k1))
+    for i in range(nb_MAP):
+        idxs[i]=np.argmin(C[i,:,:k2[i]],-1)
+    non_zero=idxs[:,:,None]==np.arange(ksize)
+    return w1[:,:,None]*non_zero
+    
+def update_w(P):
+    return np.sum(P,1)
+
+def update_S(P,w1,S1,S2,eps):
+    ksize=P.shape[-1]
+    return gaussians_barycenter_fixpoint(np.repeat(S1[:,:,None,:,:],ksize,axis=2), P, max_itr=50, eps=eps,Sigma_init=S2)
+
 def gaussians_barycenter_fixpoint(S, P, max_itr=50, eps=1e-7,Sigma_init=None):
     #Compute barycenters of gausians by fix point algo
     Pweight=np.divide(P,np.sum(P,1)[:,None,:],where=(np.sum(P,1)!=0)[:,None,:],out=np.zeros(P.shape))

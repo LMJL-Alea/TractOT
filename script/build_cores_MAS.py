@@ -5,8 +5,68 @@ import pickle
 from projection_GMM import proj_GMM_MAS
 from utils import cov_to_array_MAS
 
-def average_MAS_per_labels(n_clusters,m,wI,I,w,S,conf,labels_svm,labels_clus):
-    
+
+def average_MAS_per_labels(n_clusters,m,wI,I,w,S,conf,labels_svm,labels_clus):       
+    """
+    Compute cores MAS 
+
+    This function compute cores MAS by averaging of MAS, given clusters  
+
+    Parameters
+    ----------
+    n_clusters : positive integer
+        Number of target cores MAS
+    m : numpy array 
+        Euclidean coordinate of the MAS. 
+        Is shape is ,nb_MASxnb_MAPx3
+    wI : numpy array
+        An array of positive weights for the isotropic comparment. 
+        Is shape is nb_MASxnb_MAP
+    I: numpy array
+        Array of the eigenvalues for the isotropic covariate
+        Is shape is nb_MASxnb_MAP
+    w: numpy array
+        An array of positive weights for the anisotropic comparment.
+        Is shape is nb_MASxnb_MAPxnb_compartement
+    S: positive scalar
+        An array of the covariates matrices for the anisotropic part
+        Is shape is nb_MASxnb_MAPxnb_compartmentxdxd
+    conf: numpy array
+        Confidence score for the points of the MAS
+        Is shape is nb_MASxnb_MAP
+    labels_svm: numpy array
+        Label of each MAP given by an SVM 
+        Is shape is nb_MASxnb_MAP
+    labels_clus: numpy array
+        Label of each MAS
+        Is shape is nb_MAS
+        
+    Returns
+    Note returns are list since cores MAS might have different number of MAP
+    -------
+    cores_m : list of numpy array
+        A list of array for the Euclidean coordinate of the cores MAS
+        List has length n_clusters
+    cores_wI: list of numpy array
+        A list of array for weights of the isotropic compartment of the cores MAS
+        List has length n_clusters
+    cores_I: list of numpy array
+        A list of array for eigenvalue of the isotropic compartment of the cores MAS
+        List has length n_clusters
+    cores_w: list of numpy array
+        A list of array for weights of the anisotropic compartment of the cores MAS
+        List has length n_clusters
+    cores_S: list of numpy array
+        A list of array for the anisotropic covariates the cores MAS
+        List has length n_clusters
+    idx_svm_l: list of numpy array
+        A list with svm labels of each point of the cores MAS 
+    idx_cluster: list of numpy array
+        A list with cluster labels of each point of the cores MAS
+        Note that each MAS as the label along its MAP
+    size_cluster: list of numpy array
+        A list containg the number of MAP that have been averaging to obtain each MAP of the cores MAS
+    """
     nb_pts=m.shape[1]
     K_size=w.shape[-1]
 
