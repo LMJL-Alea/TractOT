@@ -7,28 +7,39 @@ from dipy.io.image import load_nifti,save_nifti
 from dipy.io.gradients import read_bvals_bvecs
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-i','--input_path', type=str,required=True,help="input path")
-parser.add_argument('-s','--subject', type=str,required=True,help="subject")
+parser.add_argument('-i','--input_paths_images', nargs='+', type=str,required=True,help='input path for the images')
+parser.add_argument('-b','--input_paths_bvals', nargs='+', type=str,required=True,help='input path for the bvals')
+parser.add_argument('-g','--input_paths_bvecs', nargs='+', type=str,required=True,help='input path for the bvecs')
+
+parser.add_argument('-o','--output_paths_images', type=str,required=True,help='output path for the images')
+parser.add_argument('-c','--output_paths_bvals', type=str,required=True,help='output path for the bvals')
+parser.add_argument('-f','--output_paths_bvecs', type=str,required=True,help='output path for the bvecs')
 
 args = parser.parse_args()
-path=args.input_path
-subject=args.subject
+imgs=args.input_paths_images
+bvals=args.input_paths_bvals
+bvecs=args.input_paths_bvecs
+
+out_imgs=args.output_paths_images
+out_bvals=args.output_paths_bvals
+out_bvecs=args.output_paths_bvecs
 
 
-img_dwi=['DTI_B700_64dir_PA_','DTI_B1000_64dir_PA_','DTI_B2000_64dir_PA_']
+#print(imgs,flush=True)
+#img_dwi=['DTI_B700_64dir_PA_','DTI_B1000_64dir_PA_','DTI_B2000_64dir_PA_']
 
-for i,img in enumerate(img_dwi):
+for i in range(len(imgs)):
     if i==0:
-        dwi,header= load_nifti(path+'2EPI_'+img+subject+'.nii.gz')
-        bval,bvec=bval,bvec=read_bvals_bvecs(path+img+subject+'.bval',path+img+subject+'.bvec')
+        dwi,header= load_nifti(imgs[i])
+        bval,bvec=bval,bvec=read_bvals_bvecs(bvals[i],bvecs[i])
     else:
-        dwi_i,header_i= load_nifti(path+'2EPI_'+img+subject+'.nii.gz')
-        bval_i,bvec_i=read_bvals_bvecs(path+img+subject+'.bval',path+img+subject+'.bvec')
+        dwi_i,header_i=load_nifti(imgs[i])
+        bval_i,bvec_i=read_bvals_bvecs(bvals[i],bvecs[i])
 
         dwi=np.concatenate((dwi,dwi_i),axis=-1)
         bval=np.concatenate((bval,bval_i),axis=-1)
         bvec=np.concatenate((bvec,bvec_i),axis=0)
 
-save_nifti(path+'3concatenate_DTI_PA_'+subject+'.nii.gz',dwi,header)
-np.savetxt(path+'3concatenate_DTI_PA_'+subject+".bval", bval.astype(int),fmt='%i', newline=" ")
-np.savetxt(path+'3concatenate_DTI_PA_'+subject+".bvec", bvec.T, newline="\n", delimiter="  ")
+save_nifti(out_imgs,dwi,header)
+np.savetxt(out_bvals, bval.astype(int),fmt='%i', newline=" ")
+np.savetxt(out_bvecs, bvec.T, newline="\n", delimiter="  ")

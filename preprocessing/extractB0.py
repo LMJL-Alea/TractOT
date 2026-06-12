@@ -1,4 +1,4 @@
-#Concatenate DWI
+#Extract B0
 
 import argparse
 import os
@@ -7,15 +7,15 @@ from dipy.io.image import load_nifti,save_nifti
 from dipy.io.gradients import read_bvals_bvecs
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-i','--path', type=str,required=True,help="path")
-parser.add_argument('-m','--image', type=str,required=True,help="image name")
+parser.add_argument('-i','--image_input', type=str,required=True,help="input dwi image")
+parser.add_argument('-o','--b0_output', type=str,required=True,help="output B0, first and last slice")
 
 args = parser.parse_args()
-path=args.path
-image=args.image
+image_input=args.image_input
+b0_output=args.b0_output
 
-dwi,header= load_nifti(path+'1eddy_'+image+'.nii.gz')
-header[-1,-1]=4.3
+dwi,header= load_nifti(image_input)
+#header[-1,-1]=4.3
 b0=dwi[:,:,:,0:2]
 b0[:,:,:,-1]=dwi[:,:,:,-1] #b0 is first and last 
-save_nifti(path+'B0_eddy_'+image+'.nii.gz',b0,header)
+save_nifti(b0_output,b0,header)
